@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha de Cadastramento de Pacientes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        label {
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type="text"], input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .btn-action {
+            flex: 1;
+            padding: 10px;
+            margin: 0 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
+        }
+        .btn-action:hover {
+            background-color: #45a049;
+        }
+        .btn-export {
+            background-color: #5bc0de;
+        }
+        .btn-export:hover {
+            background-color: #31b0d5;
+        }
+        .btn-import {
+            background-color: #f0ad4e;
+        }
+        .btn-import:hover {
+            background-color: #ec971f;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th, td {
+            padding: 12px;
+        }
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .btn-table-action {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 0 2px;
+            font-size: 14px;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-edit {
+            background-color: #f0ad4e;
+        }
+        .btn-edit:hover {
+            background-color: #ec971f;
+        }
+        .btn-copy {
+            background-color: #5bc0de;
+        }
+        .btn-copy:hover {
+            background-color: #31b0d5;
+        }
+        .btn-delete {
+            background-color: #d9534f;
+        }
+        .btn-delete:hover {
+            background-color: #c9302c;
+        }
+        .search-container {
+            margin-top: 20px;
+            display: flex;
+            width: 100%;
+        }
+        .search-container input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            margin: 0;
+        }
+        .btn-search {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        .btn-search:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Ficha de Cadastramento de Pacientes</h2>
+
+    <div class="form-area">
+        <form id="pacienteForm" action="#" method="post">
+            <div class="form-group">
+                <label for="protocolo">Número de Protocolo:</label>
+                <input type="text" id="protocolo" name="protocolo" required>
+            </div>
+
+            <div class="form-group">
+                <label for="nome">Nome do Paciente:</label>
+                <input type="text" id="nome" name="nome" required>
+            </div>
+
+            <div class="form-group">
+                <label for="data_inicio">Data do Início do Atendimento:</label>
+                <input type="date" id="data_inicio" name="data_inicio" required>
+            </div>
+
+            <div class="btn-container">
+                <button type="button" id="btnCadastrar" class="btn-action" onclick="cadastrarPaciente()">Cadastrar</button>
+                <button type="button" class="btn-action btn-export" onclick="exportarDados()">Exportar Dados</button>
+                <button type="button" class="btn-action btn-import" onclick="importarDados()">Importar Dados</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="nomeBusca" placeholder="Digite o nome do paciente para buscar...">
+        <button type="button" class="btn-search" onclick="buscarPaciente()">Buscar</button>
+    </div>
+
+    <table id="tabelaPacientes">
+        <thead>
+            <tr>
+                <th>Número de Protocolo</th>
+                <th>Nome do Paciente</th>
+                <th>Data do Início do Atendimento</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- As linhas da tabela serão inseridas dinamicamente -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    let editando = false;  // Flag para verificar se está no modo de edição
+
+    document.addEventListener('DOMContentLoaded', carregarDados);
+
+    function formatarData(data) {
+        const [ano, mes, dia] = data.split('-');
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    function desformatarData(data) {
+        const [dia, mes, ano] = data.split('/');
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    function salvarLocalmente(dados) {
+        localStorage.setItem('pacientes', JSON.stringify(dados));
+    }
+
+    function carregarDados() {
+        const dados = JSON.parse(localStorage.getItem('pacientes')) || [];
+        dados.forEach(dado => adicionarLinha(dado.protocolo, dado.nome, dado.dataInicio));
+    }
+
+    function cadastrarPaciente() {
+        const protocolo = document.getElementById('protocolo').value;
+        const nome = document.getElementById('nome').value;
+        const dataInicio = formatarData(document.getElementById('data_inicio').value);
+
+        if(protocolo && nome && dataInicio) {
+            if (editando) {
+                salvarAlteracao(protocolo, nome, dataInicio);
+            } else {
+                adicionarLinha(protocolo, nome, dataInicio);
+            }
+
+            document.getElementById('pacienteForm').reset();
+            document.getElementById('btnCadastrar').innerText = "Cadastrar";
+            editando = false;
+            salvarDadosLocalmente();
+        } else {
+            alert('Por favor, preencha todos os campos.');
+        }
+    }
+
+    function adicionarLinha(protocolo, nome, dataInicio) {
+        const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
+        const novaLinha = tabela.insertRow();
+
+        const celulaProtocolo = novaLinha.insertCell(0);
+        const celulaNome = novaLinha.insertCell(1);
+        const celulaData = novaLinha.insertCell(2);
+        const celulaAcoes = novaLinha.insertCell(3);
+
+        celulaProtocolo.innerHTML = protocolo;
+        celulaNome.innerHTML = nome;
+        celulaData.innerHTML = dataInicio;
+        celulaAcoes.innerHTML = `
+            <button class="btn-table-action btn-edit" onclick="editarPaciente(this)">Editar</button>
+            <button class="btn-table-action btn-copy" onclick="copiarProtocolo('${protocolo}')">Copiar</button>
+            <button class="btn-table-action btn-delete" onclick="excluirPaciente(this)">Excluir</button>
+        `;
+
+        salvarDadosLocalmente();
+    }
+
+    function salvarAlteracao(protocolo, nome, dataInicio) {
+        const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
+        const linhas = tabela.rows;
+
+        for (let i = 0; i < linhas.length; i++) {
+            const linhaProtocolo = linhas[i].cells[0].innerText;
+            if (linhaProtocolo === protocolo) {
+                linhas[i].cells[1].innerText = nome;
+                linhas[i].cells[2].innerText = dataInicio;
+            }
+        }
+
+        salvarDadosLocalmente();
+    }
+
+    function excluirPaciente(botao) {
+        const linha = botao.parentNode.parentNode;
+        linha.parentNode.removeChild(linha);
+        salvarDadosLocalmente();
+    }
+
+    function editarPaciente(botao) {
+        const linha = botao.parentNode.parentNode;
+        const protocolo = linha.cells[0].innerText;
+        const nome = linha.cells[1].innerText;
+        const dataInicio = desformatarData(linha.cells[2].innerText);
+
+        document.getElementById('protocolo').value = protocolo;
+        document.getElementById('nome').value = nome;
+        document.getElementById('data_inicio').value = dataInicio;
+
+        document.getElementById('btnCadastrar').innerText = "Salvar Alteração";
+        editando = true;
+    }
+
+    function copiarProtocolo(protocolo) {
+        navigator.clipboard.writeText(protocolo).then(function() {
+            alert('Número de Protocolo copiado: ' + protocolo);
+        }, function(err) {
+            console.error('Erro ao copiar o número de protocolo: ', err);
+        });
+    }
+
+    function exportarDados() {
+        const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
+        const linhas = tabela.rows;
+        const dados = [];
+
+        for(let i = 0; i < linhas.length; i++) {
+            const protocolo = linhas[i].cells[0].innerText;
+            const nome = linhas[i].cells[1].innerText;
+            const dataInicio = linhas[i].cells[2].innerText;
+
+            dados.push({ protocolo, nome, dataInicio });
+        }
+
+        const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+
+        // Gera a data e hora atual no formato YYYYMMDD_HHMMSS
+        const dataAtual = new Date();
+        const dataFormatada = `${dataAtual.getFullYear()}${String(dataAtual.getMonth() + 1).padStart(2, '0')}${String(dataAtual.getDate()).padStart(2, '0')}_${String(dataAtual.getHours()).padStart(2, '0')}${String(dataAtual.getMinutes()).padStart(2, '0')}${String(dataAtual.getSeconds()).padStart(2, '0')}`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pacientes_${dataFormatada}.json`; // Nome do arquivo com data e hora
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importarDados() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+
+        input.onchange = function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const dados = JSON.parse(e.target.result);
+                const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
+
+                dados.forEach(dado => {
+                    adicionarLinha(dado.protocolo, dado.nome, dado.dataInicio);
+                });
+            };
+
+            reader.readAsText(file);
+        };
+
+        input.click();
+    }
+
+    function buscarPaciente() {
+        const nomeBusca = document.getElementById('nomeBusca').value.toLowerCase().trim();
+        const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
+        const linhas = tabela.rows;
+        let encontrou = false;
+        
+        for (let i = 0; i < linhas.length; i++) {
+            const nome = linhas[i].cells[1].innerText.toLowerCase();
+            if (nome.includes(nomeBusca)) {
+                linhas[i].style.display = "";
+                encontrou = true;
+            } else {
+                linhas[i].style.display = "none";
+            }
+        }
+
+        if (!encontrou) {
+            alert('Paciente não encontrado.');
+        }
+    }
+
+    function salvarDadosLocalmente() {
+        const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
+        const linhas = tabela.rows;
+        const dados = [];
+
+        for(let i = 0; i < linhas.length; i++) {
+            const protocolo = linhas[i].cells[0].innerText;
+            const nome = linhas[i].cells[1].innerText;
+            const dataInicio = linhas[i].cells[2].innerText;
+
+            dados.push({ protocolo, nome, dataInicio });
+        }
+
+        salvarLocalmente(dados);
+    }
+</script>
+
+</body>
+</html>
