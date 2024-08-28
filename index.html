@@ -158,8 +158,13 @@
             </div>
 
             <div class="form-group">
-                <label for="data_inicio">Data do Início do Atendimento:</label>
-                <input type="date" id="data_inicio" name="data_inicio" required>
+                <label for="inicio">Início:</label>
+                <input type="date" id="inicio" name="inicio" required>
+            </div>
+
+            <div class="form-group">
+                <label for="fim">Fim:</label>
+                <input type="date" id="fim" name="fim">
             </div>
 
             <div class="btn-container">
@@ -180,7 +185,8 @@
             <tr>
                 <th>Número de Protocolo</th>
                 <th>Nome do Paciente</th>
-                <th>Data do Início do Atendimento</th>
+                <th>Início</th>
+                <th>Fim</th>
                 <th>Ação</th>
             </tr>
         </thead>
@@ -211,19 +217,20 @@
 
     function carregarDados() {
         const dados = JSON.parse(localStorage.getItem('pacientes')) || [];
-        dados.forEach(dado => adicionarLinha(dado.protocolo, dado.nome, dado.dataInicio));
+        dados.forEach(dado => adicionarLinha(dado.protocolo, dado.nome, dado.inicio, dado.fim));
     }
 
     function cadastrarPaciente() {
         const protocolo = document.getElementById('protocolo').value;
         const nome = document.getElementById('nome').value;
-        const dataInicio = formatarData(document.getElementById('data_inicio').value);
+        const inicio = formatarData(document.getElementById('inicio').value);
+        const fim = formatarData(document.getElementById('fim').value) || "";  // Captura o valor do campo "Fim"
 
-        if(protocolo && nome && dataInicio) {
+        if(protocolo && nome && inicio) {
             if (editando) {
-                salvarAlteracao(protocolo, nome, dataInicio);
+                salvarAlteracao(protocolo, nome, inicio, fim);
             } else {
-                adicionarLinha(protocolo, nome, dataInicio);
+                adicionarLinha(protocolo, nome, inicio, fim);
             }
 
             document.getElementById('pacienteForm').reset();
@@ -235,18 +242,20 @@
         }
     }
 
-    function adicionarLinha(protocolo, nome, dataInicio) {
+    function adicionarLinha(protocolo, nome, inicio, fim) {
         const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
         const novaLinha = tabela.insertRow();
 
         const celulaProtocolo = novaLinha.insertCell(0);
         const celulaNome = novaLinha.insertCell(1);
-        const celulaData = novaLinha.insertCell(2);
-        const celulaAcoes = novaLinha.insertCell(3);
+        const celulaInicio = novaLinha.insertCell(2);
+        const celulaFim = novaLinha.insertCell(3);
+        const celulaAcoes = novaLinha.insertCell(4);
 
         celulaProtocolo.innerHTML = protocolo;
         celulaNome.innerHTML = nome;
-        celulaData.innerHTML = dataInicio;
+        celulaInicio.innerHTML = inicio;
+        celulaFim.innerHTML = fim;
         celulaAcoes.innerHTML = `
             <button class="btn-table-action btn-edit" onclick="editarPaciente(this)">Editar</button>
             <button class="btn-table-action btn-copy" onclick="copiarProtocolo('${protocolo}')">Copiar</button>
@@ -256,7 +265,7 @@
         salvarDadosLocalmente();
     }
 
-    function salvarAlteracao(protocolo, nome, dataInicio) {
+    function salvarAlteracao(protocolo, nome, inicio, fim) {
         const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
         const linhas = tabela.rows;
 
@@ -264,7 +273,8 @@
             const linhaProtocolo = linhas[i].cells[0].innerText;
             if (linhaProtocolo === protocolo) {
                 linhas[i].cells[1].innerText = nome;
-                linhas[i].cells[2].innerText = dataInicio;
+                linhas[i].cells[2].innerText = inicio;
+                linhas[i].cells[3].innerText = fim;
             }
         }
 
@@ -281,11 +291,13 @@
         const linha = botao.parentNode.parentNode;
         const protocolo = linha.cells[0].innerText;
         const nome = linha.cells[1].innerText;
-        const dataInicio = desformatarData(linha.cells[2].innerText);
+        const inicio = desformatarData(linha.cells[2].innerText);
+        const fim = desformatarData(linha.cells[3].innerText) || "";  // Preenche o campo "Fim" para edição
 
         document.getElementById('protocolo').value = protocolo;
         document.getElementById('nome').value = nome;
-        document.getElementById('data_inicio').value = dataInicio;
+        document.getElementById('inicio').value = inicio;
+        document.getElementById('fim').value = fim;
 
         document.getElementById('btnCadastrar').innerText = "Salvar Alteração";
         editando = true;
@@ -307,21 +319,21 @@
         for(let i = 0; i < linhas.length; i++) {
             const protocolo = linhas[i].cells[0].innerText;
             const nome = linhas[i].cells[1].innerText;
-            const dataInicio = linhas[i].cells[2].innerText;
+            const inicio = linhas[i].cells[2].innerText;
+            const fim = linhas[i].cells[3].innerText;
 
-            dados.push({ protocolo, nome, dataInicio });
+            dados.push({ protocolo, nome, inicio, fim });
         }
 
         const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
 
-        // Gera a data e hora atual no formato YYYYMMDD_HHMMSS
         const dataAtual = new Date();
         const dataFormatada = `${dataAtual.getFullYear()}${String(dataAtual.getMonth() + 1).padStart(2, '0')}${String(dataAtual.getDate()).padStart(2, '0')}_${String(dataAtual.getHours()).padStart(2, '0')}${String(dataAtual.getMinutes()).padStart(2, '0')}${String(dataAtual.getSeconds()).padStart(2, '0')}`;
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `pacientes_${dataFormatada}.json`; // Nome do arquivo com data e hora
+        a.download = `pacientes_${dataFormatada}.json`;
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -340,7 +352,7 @@
                 const tabela = document.getElementById('tabelaPacientes').getElementsByTagName('tbody')[0];
 
                 dados.forEach(dado => {
-                    adicionarLinha(dado.protocolo, dado.nome, dado.dataInicio);
+                    adicionarLinha(dado.protocolo, dado.nome, dado.inicio, dado.fim);
                 });
             };
 
@@ -379,9 +391,10 @@
         for(let i = 0; i < linhas.length; i++) {
             const protocolo = linhas[i].cells[0].innerText;
             const nome = linhas[i].cells[1].innerText;
-            const dataInicio = linhas[i].cells[2].innerText;
+            const inicio = linhas[i].cells[2].innerText;
+            const fim = linhas[i].cells[3].innerText;
 
-            dados.push({ protocolo, nome, dataInicio });
+            dados.push({ protocolo, nome, inicio, fim });
         }
 
         salvarLocalmente(dados);
